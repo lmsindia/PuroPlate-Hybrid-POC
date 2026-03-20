@@ -1,0 +1,5 @@
+.env
+node_modules/
+dbdump.dump
+WP_USER.png
+npm-debug.log*
