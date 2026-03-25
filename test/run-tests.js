@@ -1,6 +1,8 @@
 const tests = [
+  require("./auth.test"),
   require("./checkout.test"),
   require("./products.test"),
+  require("./vendors.test"),
   require("./webhook.test")
 ];
 

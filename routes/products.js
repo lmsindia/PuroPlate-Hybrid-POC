@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../config/db");
+const ctrl = require("../controllers/productController");
+const auth = require("../middleware/authMiddleware");
 
 router.get("/", async (req, res, next) => {
   try {
@@ -86,5 +88,7 @@ router.get("/", async (req, res, next) => {
     next(err);
   }
 });
+
+
 
 module.exports = router;
