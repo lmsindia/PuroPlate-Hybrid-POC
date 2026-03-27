@@ -1,7 +1,6 @@
 require("dotenv").config();
 const crypto = require("crypto");
 const express = require("express");
-const bodyParser = require("body-parser");
 const { validateEnv } = require("./config/env");
 const { normalizeHttpError } = require("./utils/errorMapping");
 const logger = require("./utils/logger");
@@ -16,6 +15,7 @@ validateEnv();
 const app = express();
 app.disable("x-powered-by");
 
+// Request tracking middleware
 app.use((req, res, next) => {
   const requestId = req.headers["x-request-id"] || crypto.randomUUID();
   const startedAt = process.hrtime.bigint();
@@ -39,18 +39,25 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(bodyParser.json({
+// Webhook route (raw body only)
+app.use("/webhooks/shopify", express.raw({
+  type: "application/json",
   verify: (req, res, buf) => {
-    req.rawBody = buf.toString();
+    req.rawBody = buf;
   }
 }));
 
+// Normal APIs
+app.use(express.json());
+
+// Routes
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/products", products);
 app.use("/api/checkout", checkout);
 app.use("/api/vendors", vendors);
 app.use("/webhooks/shopify", webhook);
 
+// 404
 app.use((req, res) => {
   res.status(404).json({
     error: "Not found",
@@ -58,10 +65,9 @@ app.use((req, res) => {
   });
 });
 
+// Error handler
 app.use((err, req, res, next) => {
-  if (res.headersSent) {
-    return next(err);
-  }
+  if (res.headersSent) return next(err);
 
   const { statusCode, clientMessage } = normalizeHttpError(err);
 
@@ -70,10 +76,7 @@ app.use((err, req, res, next) => {
     method: req.method,
     path: req.originalUrl,
     statusCode,
-    errorCode: err.code,
-    error: err.message,
-    detail: err.detail,
-    stack: statusCode >= 500 ? err.stack : undefined
+    error: err.message
   });
 
   res.status(statusCode).json({
@@ -87,4 +90,3 @@ app.listen(process.env.PORT, () => {
     port: Number(process.env.PORT)
   });
 });
-
